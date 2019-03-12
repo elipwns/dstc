@@ -24,7 +24,6 @@ export DESTDIR
 #	Build the entire project.
 #
 all: $(LIB_TARGET) $(LIB_SO_TARGET) $(OBJ)
-	$(MAKE) -C examples
 
 #
 #	Make sure all of the object files are current.
@@ -44,6 +43,8 @@ $(LIB_TARGET): $(OBJ)
 $(LIB_SO_TARGET):  $(OBJ)
 	$(CC) -shared $(CFLAGS) $(OBJ) -o $(LIB_SO_TARGET)
 
+examples: $(LIB_TARGET) $(LIB_SO_TARGET) $(OBJ)
+	$(MAKE) -C examples
 #
 #	Remove all the generated files in this project.  Note that this does NOT
 #	remove the generated files in the submodules.  Use "make distclean" to
