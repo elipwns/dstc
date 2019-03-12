@@ -69,7 +69,7 @@ install:  all
 	install -m 0644 ${LIB_TARGET}  ${DESTDIR}/lib; \
 	install -m 0644 ${HDR}  ${DESTDIR}/include; \
 	install -m 0644 ${LIB_SO_TARGET}  ${DESTDIR}/lib; \
-	$(MAKE) DESTDIR=${DESTDIR} -C examples install
+	$(MAKE) DESTDIR=${DESTDIR} install
 
 #
 #	Uninstall the generated files.
