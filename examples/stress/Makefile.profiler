@@ -1,14 +1,16 @@
 #
 # Executable example code from the README.md file
 #
-NAME=dynamic_data
+
+NAME=stress
+
 # FIXME variable substitution is a thing
 INCLUDE=../../dstc.h
 
 TARGET_CLIENT=${NAME}_client
 TARGET_NOMACRO_CLIENT=${TARGET_CLIENT}_nomacro
 
-CLIENT_OBJ=dynamic_data_client.o
+CLIENT_OBJ=${NAME}_client.o
 CLIENT_SOURCE=$(CLIENT_OBJ:%.o=%.c)
 
 CLIENT_NOMACRO_OBJ=$(CLIENT_OBJ:%.o=%_nomacro.o)
@@ -20,14 +22,13 @@ CLIENT_NOMACRO_SOURCE=$(CLIENT_NOMACRO_OBJ:%.o=%.c)
 TARGET_SERVER=${NAME}_server
 TARGET_NOMACRO_SERVER=${TARGET_SERVER}_nomacro
 
-SERVER_OBJ=dynamic_data_server.o
+SERVER_OBJ=${NAME}_server.o
 SERVER_SOURCE=$(SERVER_OBJ:%.o=%.c)
 
 SERVER_NOMACRO_OBJ=$(SERVER_OBJ:%.o=%_nomacro.o)
 SERVER_NOMACRO_SOURCE=$(SERVER_NOMACRO_OBJ:%.o=%.c)
 
-
-CFLAGS += -I../.. -pthread -Wall -pthread -O2 ${USE_POLL}
+CFLAGS+= -I../.. -g -Wall -pthread -D_GNU_SOURCE -pg
 
 .PHONY: all clean install nomacro uninstall
 
@@ -35,12 +36,30 @@ all: $(TARGET_SERVER) $(TARGET_CLIENT)
 
 nomacro:  $(TARGET_NOMACRO_SERVER) $(TARGET_NOMACRO_CLIENT)
 
+RMC_SRC=pub.c \
+	time.c \
+	sub.c \
+	circular_buffer.c \
+	rmc_connection.c \
+	rmc_protocol.c \
+	rmc_sub_packet.c \
+	rmc_pub_packet.c \
+	rmc_sub_context.c \
+	rmc_pub_context.c \
+	rmc_sub_read.c \
+	rmc_pub_read.c \
+	rmc_sub_write.c \
+	rmc_pub_write.c \
+	rmc_pub_timeout.c \
+	rmc_sub_timeout.c \
+	rmc_log.c
+
 $(TARGET_SERVER): $(SERVER_OBJ)
-	$(CC) $(CFLAGS) $^ -L/usr/local/lib -ldstc -lrmc -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SERVER_OBJ) -L../.. ../../dstc.c ${RMC_SRC:%=../../../reliable_multicast/% } -o $@
 
 
 $(TARGET_CLIENT): $(CLIENT_OBJ)
-	$(CC) $(CFLAGS) $^ -L/usr/local/lib -ldstc -lrmc -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CLIENT_OBJ) -L../.. ../../dstc.c ${RMC_SRC:%=../../../reliable_multicast/% } -o $@
 
 
 # Recompile everything if dstc.h changes
@@ -57,6 +76,7 @@ install:
 	install -m 0755 ${TARGET_CLIENT} ${DESTDIR}/bin
 	install -m 0755 ${TARGET_SERVER} ${DESTDIR}/bin
 
+
 uninstall:
 	rm -f ${DESTDIR}/bin/${TARGET_CLIENT}
 	rm -f ${DESTDIR}/bin/${TARGET_SERVER}
@@ -64,15 +84,15 @@ uninstall:
 #
 # The client is built as a regular binary
 #
-$(TARGET_NOMACRO_CLIENT) : $(CLIENT_NOMACRO_OBJ) $(DSTCLIB)
-	$(CC) $(CFLAGS) $^ -L/usr/local/lib -ldstc -lrmc -o $@ $(LDFLAGS)
+$(TARGET_NOMACRO_CLIENT) : $(CLIENT_NOMACRO_OBJ) $(DSTC_LIB)
+	$(CC) $(CFLAGS) $(LIBPATH) $^ -L../.. -ldstc -lrmc -o $@
 
-$(TARGET_NOMACRO_SERVER): $(SERVER_NOMACRO_OBJ) $(DSTCLIB)
-	$(CC) $(CFLAGS) $^ -L/usr/local/lib -ldstc -lrmc -o $@ $(LDFLAGS)
+$(TARGET_NOMACRO_SERVER): $(SERVER_NOMACRO_OBJ) $(DSTC_LIB)
+	$(CC) $(CFLAGS) $(LIBPATH) $^ -L../.. -ldstc -lrmc -o $@
 
 
 $(CLIENT_NOMACRO_SOURCE): ${CLIENT_SOURCE} ../../dstc.h
-	$(CC) ${INCPATH} -E ${CLIENT_SOURCE} | clang-format | grep -v '^# [0-9]' > ${CLIENT_NOMACRO_SOURCE}
+	cpp ${INCPATH} -E ${CLIENT_SOURCE} | clang-format | grep -v '^# [0-9]' > ${CLIENT_NOMACRO_SOURCE}
 
 $(SERVER_NOMACRO_SOURCE): ${SERVER_SOURCE} ../../dstc.h
-	$(CC) ${INCPATH} -E ${SERVER_SOURCE} | clang-format | grep -v '^# [0-9]' > ${SERVER_NOMACRO_SOURCE}
+	cpp ${INCPATH} -E ${SERVER_SOURCE} | clang-format | grep -v '^# [0-9]' > ${SERVER_NOMACRO_SOURCE}

@@ -15,25 +15,26 @@
 #include <errno.h>
 
 // Generate serializer functionality and the callable client function
-// dstc_print_name_and_age().
-// A call to dstc_print_name_and_age() will trigger a call to
-// print_name_and_age() in all servers that have regiistered
-// print_name_and_age through a DSTC_SERVER macro.
+// no_argument_function().
+// A call to dstc_no_argument_function() will trigger a call to
+// no_argument_function() in all servers that have registered
+// tghat function through a DSTC_SERVER macro.
 //
-DSTC_CLIENT(print_name_and_age, char, [32], int,)
+DSTC_CLIENT(no_argument_function)
+DSTC_CLIENT(one_argument_function, int,)
 
 int main(int argc, char* argv[])
 {
-    char name[32] = {0};
     int res = 0;
 
     // Wait for function to become available on one or more servers.
-    while(!dstc_remote_function_available(dstc_print_name_and_age))
+    while(!dstc_remote_function_available(dstc_no_argument_function) ||
+          !dstc_remote_function_available(dstc_one_argument_function))
         dstc_process_events(-1);
 
 
-    strcpy(name, "Bob Smith");
-    dstc_print_name_and_age(name, 25);
+    dstc_no_argument_function();
+    dstc_one_argument_function(4711);
 
     // Process all pending events, ensuring that the call goes out.
     while((res = dstc_process_events(0)) != ETIME)
