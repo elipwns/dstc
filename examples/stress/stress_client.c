@@ -11,6 +11,7 @@
 #include "dstc.h"
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "rmc_log.h"
 
 // Generate serializer functionality and the callable client function
@@ -24,33 +25,51 @@ int main(int argc, char* argv[])
     int val = 0;
     // Wait for function to become available on one or more servers.
     while(!dstc_remote_function_available(dstc_set_value))
-        dstc_process_events(500000);
+        dstc_process_events(-1);
 
+
+    // Move into buffered mode to transmit 63K UDP packets.
+    dstc_buffer_client_calls();
     //
     // Pump as many calls as we can through the server.
     // If we choke on EBUSY, process events until we have cleared
     // the output queue enough to continue.
     //
-    while(1) {
-        // Process a single event for as many times as necessary
-        // to unblock our client call.
+    while(val < 10000000) {
+        // Pump out calls until we get EBUSY back.
         //
-        // We can have a 1000 msec timeout since
-        // dstc_process_single_event() will return as soon as it has
-        // completed one cycle, which will be carried out as soon as
-        // system resources allows it.
-        //
+        // At that point, process events to actually send them
+        // over the wire until the dstc_set_value() call succeeeds.
         while (dstc_set_value(val) == EBUSY) {
-            dstc_process_single_event(1000);
+            dstc_process_events(1);
             continue;
         }
 
-        if (val % 1000000 == 0)
-            printf("Value: %d\n", val);
+        if (val % 100000 == 0)
+            printf("Client value: %d\n", val);
 
         ++val;
     }
 
-    // Process events for another 100 msec to ensure that all calls gets out.
-    dstc_process_events(100000);
+    // Unbuffer call sequences to ensure that we get
+    // all final calls go out.
+    dstc_unbuffer_client_calls();
+    puts("Client telling server to exit");
+    int ret = 0;
+    while ((ret = dstc_set_value(-1)) == EBUSY) {
+        dstc_process_events(0);
+        continue;
+    }
+
+    puts("Processing events telling server to exit");
+    // Process events until there are no more.
+    msec_timestamp_t ts = dstc_msec_monotonic_timestamp();
+    msec_timestamp_t timeout = ts + 2000;
+    while(ts < timeout) {
+        dstc_process_events(timeout - ts);
+        ts = dstc_msec_monotonic_timestamp();
+    }
+
+    puts("Client exiting");
+    exit(0);
 }

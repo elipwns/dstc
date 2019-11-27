@@ -1,6 +1,6 @@
 // Copyright (C) 2018, Jaguar Land Rover
 // This program is licensed under the terms and conditions of the
-// Mozilla Public License, version 2.0.  The full text of the 
+// Mozilla Public License, version 2.0.  The full text of the
 // Mozilla Public License is at https://www.mozilla.org/MPL/2.0/
 //
 // Author: Magnus Feuer (mfeuer1@jaguarlandrover.com)
@@ -27,12 +27,22 @@ DSTC_SERVER(add_name_and_age_element, struct name_and_age, )
 // Generate a deserializer that retrieves all elements,
 // added with remote calls to add_name_and_age_element(),
 // and send them back using a callback
-DSTC_SERVER(get_all_elements, DECL_CALLBACK_ARG)
+DSTC_SERVER(get_all_elements, DSTC_DECL_CALLBACK_ARG)
+
+// Exit function called by client to terminate server.
+DSTC_SERVER(do_exit, int, )
+
 
 void add_name_and_age_element(struct name_and_age new_elem)
 {
     printf("Adding Name: %s   Age %d\n", new_elem.name, new_elem.age);
     elems[elem_index++] = new_elem;
+}
+
+void do_exit(int status)
+{
+    printf("Exiting with status: %d\n", status);
+    exit(status);
 }
 
 
@@ -42,11 +52,12 @@ void add_name_and_age_element(struct name_and_age new_elem)
 // nothing to do with the declared functions and can be anything
 // as long as it is used consistently inside get_all_values().
 //
+// The callback takes one dynamic arg and the number of elements
+// stored in that argument.
+DSTC_SERVER_CALLBACK(remote_callback, DSTC_DECL_DYNAMIC_ARG, int,);
+
 void get_all_elements(dstc_callback_t remote_callback)
 {
-    // The callback takes one dynamic arg and the number of elements
-    // stored in that argument.
-    DSTC_CALLBACK(remote_callback, DECL_DYNAMIC_ARG, int,);
 
     // Send back all populated elements of the 'elems' array.
     // Second argument contains the number of elements sent.
@@ -55,12 +66,13 @@ void get_all_elements(dstc_callback_t remote_callback)
     // same info via dstc_dynamic_data_t:length, but it serves as a tutorial)
     //
     printf("Sending back %d elements\n", elem_index);
-    dstc_remote_callback(DYNAMIC_ARG(elems, sizeof(struct name_and_age) * elem_index), elem_index);
+    dstc_remote_callback(remote_callback, DSTC_DYNAMIC_ARG(elems, sizeof(struct name_and_age) * elem_index), elem_index);
 }
 
 
 int main(int argc, char* argv[])
 {
     // Process incoming events forever
-    dstc_process_events(-1);
+    while(1)
+        dstc_process_events(-1);
 }

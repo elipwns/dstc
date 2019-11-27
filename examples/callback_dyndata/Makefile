@@ -1,14 +1,16 @@
 #
 # Executable example code from the README.md file
 #
-NAME=dynamic_data
+
+NAME=callback_dyndata
+
 # FIXME variable substitution is a thing
 INCLUDE=../../dstc.h
 
 TARGET_CLIENT=${NAME}_client
 TARGET_NOMACRO_CLIENT=${TARGET_CLIENT}_nomacro
 
-CLIENT_OBJ=dynamic_data_client.o
+CLIENT_OBJ=callback_dyndata_client.o
 CLIENT_SOURCE=$(CLIENT_OBJ:%.o=%.c)
 
 CLIENT_NOMACRO_OBJ=$(CLIENT_OBJ:%.o=%_nomacro.o)
@@ -20,12 +22,11 @@ CLIENT_NOMACRO_SOURCE=$(CLIENT_NOMACRO_OBJ:%.o=%.c)
 TARGET_SERVER=${NAME}_server
 TARGET_NOMACRO_SERVER=${TARGET_SERVER}_nomacro
 
-SERVER_OBJ=dynamic_data_server.o
+SERVER_OBJ=callback_dyndata_server.o
 SERVER_SOURCE=$(SERVER_OBJ:%.o=%.c)
 
 SERVER_NOMACRO_OBJ=$(SERVER_OBJ:%.o=%_nomacro.o)
 SERVER_NOMACRO_SOURCE=$(SERVER_NOMACRO_OBJ:%.o=%.c)
-
 
 CFLAGS += -I../.. -pthread -Wall -pthread -O2 ${USE_POLL}
 
@@ -72,7 +73,7 @@ $(TARGET_NOMACRO_SERVER): $(SERVER_NOMACRO_OBJ) $(DSTCLIB)
 
 
 $(CLIENT_NOMACRO_SOURCE): ${CLIENT_SOURCE} ../../dstc.h
-	$(CC) ${INCPATH} -E ${CLIENT_SOURCE} | clang-format | grep -v '^# [0-9]' > ${CLIENT_NOMACRO_SOURCE}
+	cpp ${INCPATH} -E ${CLIENT_SOURCE} | clang-format | grep -v '^# [0-9]' > ${CLIENT_NOMACRO_SOURCE}
 
 $(SERVER_NOMACRO_SOURCE): ${SERVER_SOURCE} ../../dstc.h
-	$(CC) ${INCPATH} -E ${SERVER_SOURCE} | clang-format | grep -v '^# [0-9]' > ${SERVER_NOMACRO_SOURCE}
+	cpp ${INCPATH} -E ${SERVER_SOURCE} | clang-format | grep -v '^# [0-9]' > ${SERVER_NOMACRO_SOURCE}
